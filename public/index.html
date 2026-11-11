@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Smart Parking System</title>
+<style>
+body{font-family:Arial;text-align:center;background:#f4f4f4}
+h1{margin-top:20px}
+input{padding:10px;margin:5px;font-size:16px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;max-width:800px;margin:20px auto}
+.slot{padding:20px;border-radius:10px;color:white;cursor:pointer;font-weight:bold}
+.green{background:#22c55e}
+.red{background:#ef4444}
+</style>
+</head>
+<body>
+<h1>🅿️ Smart Parking System</h1>
+<h3>Total: <span id="total">20</span> | Free: <span id="free">0</span> | Booked: <span id="booked">0</span></h3>
+
+<input id="name" placeholder="Apna Naam Likhein">
+<input id="car" placeholder="Gari Number Likhein">
+<p>Neeche kisi bhi Green slot par click karke book karein</p>
+
+<div class="grid" id="grid"></div>
+
+<script>
+async function load(){
+  let res = await fetch('/api/slots');
+  let slots = await res.json();
+  let grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  let free = 0;
+  slots.forEach(s => {
+    if(!s.booked) free++;
+    let div = document.createElement('div');
+    div.className = 'slot ' + (s.booked ? 'red' : 'green');
+    div.innerHTML = s.id + '<br>' + (s.booked ? s.name + '<br>' + s.car : 'Khali Hai');
+    div.onclick = async () => {
+      if(s.booked){
+        if(confirm('Is slot ko khali karna hai?')){
+          await fetch('/api/free',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:s.id})});
+          load();
+        }
+      } else {
+        let name = document.getElementById('name').value;
+        let car = document.getElementById('car').value;
+        if(!name || !car){ alert('Pehle Naam aur Gari Number likhein!'); return; }
+        await fetch('/api/book',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:s.id,name:name,car:car})});
+        load();
+      }
+    };
+    grid.appendChild(div);
+  });
+  document.getElementById('free').innerText = free;
+  document.getElementById('booked').innerText = slots.length - free;
+  document.getElementById('total').innerText = slots.length;
+}
+load();
+</script>
+</body>
+</html>
